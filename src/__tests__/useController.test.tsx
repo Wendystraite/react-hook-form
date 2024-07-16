@@ -109,7 +109,7 @@ describe('useController', () => {
 
     fireEvent.blur(screen.getAllByRole('textbox')[0]);
 
-    expect(renderCounter).toEqual([2, 5]);
+    expect(renderCounter).toEqual([2, 3]);
   });
 
   describe('checkbox', () => {
@@ -1011,5 +1011,95 @@ describe('useController', () => {
         test: undefined,
       }),
     );
+  });
+
+  it('should subscribe to exact form state update', () => {
+    const renderCounter = [0, 0];
+    type FormValues = {
+      test: string;
+      test_with_suffix: string;
+    };
+
+    const Test = ({ control }: { control: Control<FormValues> }) => {
+      const {
+        field,
+        fieldState: { isDirty },
+      } = useController({
+        name: 'test',
+        control,
+      });
+
+      renderCounter[0]++;
+
+      return (
+        <div>
+          <input {...field} />
+          {isDirty && <p>test isDirty</p>}
+        </div>
+      );
+    };
+
+    const TestWithSuffix = ({ control }: { control: Control<FormValues> }) => {
+      const {
+        field,
+        fieldState: { isDirty },
+      } = useController({
+        name: 'test_with_suffix',
+        control,
+      });
+
+      renderCounter[1]++;
+
+      return (
+        <div>
+          <input {...field} />
+          {isDirty && <p>test_with_suffix isDirty</p>}
+        </div>
+      );
+    };
+
+    const App = () => {
+      const { control } = useForm<FormValues>({
+        defaultValues: {
+          test: '',
+          test_with_suffix: '',
+        },
+      });
+
+      return (
+        <div>
+          <Test control={control} />
+          <TestWithSuffix control={control} />
+        </div>
+      );
+    };
+
+    render(<App />);
+
+    expect(renderCounter).toEqual([1, 1]);
+
+    fireEvent.change(screen.getAllByRole('textbox')[0], {
+      target: {
+        value: '1232',
+      },
+    });
+
+    expect(screen.getByText('test isDirty')).toBeVisible();
+
+    fireEvent.blur(screen.getAllByRole('textbox')[0]);
+
+    expect(renderCounter).toEqual([2, 1]);
+
+    fireEvent.change(screen.getAllByRole('textbox')[1], {
+      target: {
+        value: '1232',
+      },
+    });
+
+    expect(screen.getByText('test_with_suffix isDirty')).toBeVisible();
+
+    fireEvent.blur(screen.getAllByRole('textbox')[1]);
+
+    expect(renderCounter).toEqual([2, 2]);
   });
 });
